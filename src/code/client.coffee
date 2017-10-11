@@ -12,6 +12,7 @@ DocumentStoreProvider = require './providers/document-store-provider'
 DocumentStoreShareProvider = require './providers/document-store-share-provider'
 LocalFileProvider = require './providers/local-file-provider'
 URLProvider = require './providers/url-provider'
+ZiSciStorageProvider = require './providers/zisci-provider'
 
 cloudContentFactory = (require './providers/provider-interface').cloudContentFactory
 CloudContent = (require './providers/provider-interface').CloudContent
@@ -39,7 +40,7 @@ class CloudFileManagerClient
 
     # filter for available providers
     allProviders = {}
-    for Provider in [ReadOnlyProvider, LocalStorageProvider, GoogleDriveProvider, LaraProvider, DocumentStoreProvider, LocalFileProvider]
+    for Provider in [ReadOnlyProvider, LocalStorageProvider, GoogleDriveProvider, LaraProvider, DocumentStoreProvider, LocalFileProvider, ZiSciStorageProvider]
       if Provider.Available()
         allProviders[Provider.Name] = Provider
 
@@ -78,7 +79,7 @@ class CloudFileManagerClient
           @alert "Unknown provider: #{providerName}"
     @_setState
       availableProviders: availableProviders
-      shareProvider: new DocumentStoreShareProvider(@, @providers[DocumentStoreProvider.Name])
+      # shareProvider: new DocumentStoreShareProvider(@, @providers[DocumentStoreProvider.Name])
 
     @appOptions.ui or= {}
     @appOptions.ui.windowTitleSuffix or= document.title
@@ -325,6 +326,8 @@ class CloudFileManagerClient
       @saveContent stringContent, callback
 
   saveContent: (stringContent, callback = null) ->
+    metadata = { 'provider': @state.availableProviders[0] }
+    @state.metadata = metadata
     provider = @state.metadata?.provider
     if provider?
       provider.authorized (isAuthorized) =>
