@@ -79,7 +79,7 @@ class CloudFileManagerClient
           @alert "Unknown provider: #{providerName}"
     @_setState
       availableProviders: availableProviders
-      # shareProvider: new DocumentStoreShareProvider(@, @providers[DocumentStoreProvider.Name])
+      shareProvider: new DocumentStoreShareProvider(@, @providers[DocumentStoreProvider.Name])
 
     @appOptions.ui or= {}
     @appOptions.ui.windowTitleSuffix or= document.title
