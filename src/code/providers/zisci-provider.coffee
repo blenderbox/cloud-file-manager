@@ -29,9 +29,21 @@ class ZiSciStorageProvider extends ProviderInterface
     catch
       false
 
+  authorized: (@authCallback) ->
+    if @authCallback
+      @authCallback true
+    else
+      true
+
+  isAuthorizationRequired: ->
+    false
+
   save: (content, metadata, callback) ->
     try
       console.log("zisci storage saving")
+
+      if typeof content._.content is 'object'
+        content._.content = JSON.stringify(content._.content)
 
       data = {
         'content': content._.content,
@@ -65,14 +77,19 @@ class ZiSciStorageProvider extends ProviderInterface
         dataType: 'json'
         type: 'GET'
         url: "http://zdev.zoomin.bbox.ly/zi_sci_storage/load"
+        # Hardcoding for the moment.
+        # Need to figure out how to pass this metadata through.
         data: {
-          'student': metadata.student,
-          'document': metadata.document
+          'student': 1,
+          'document': 1
         }
         contentType: "application/json; charset=utf-8"
         success: (data) ->
           console.log("successful load, data:")
           console.log(data)
+
+          if data.content is null or typeof data.content isnt 'object'
+            data.content = JSON.parse(data.content)
 
           content = cloudContentFactory.createEnvelopedCloudContent data
 
@@ -84,6 +101,10 @@ class ZiSciStorageProvider extends ProviderInterface
           console.log(jqXHR)
     catch e
       callback "Unable to load '#{metadata.name}': #{e.message}"
+
+  handleUrlParams: ->
+    @client.openProviderFile @name, "something"
+    true
 
   canOpenSaved: -> true
 
