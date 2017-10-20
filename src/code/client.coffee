@@ -326,8 +326,6 @@ class CloudFileManagerClient
       @saveContent stringContent, callback
 
   saveContent: (stringContent, callback = null) ->
-    metadata = { 'provider': @state.availableProviders[0] }
-    @state.metadata = metadata
     provider = @state.metadata?.provider
     if provider?
       provider.authorized (isAuthorized) =>

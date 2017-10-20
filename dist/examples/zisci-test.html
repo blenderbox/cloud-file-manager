@@ -72,7 +72,6 @@
       <textarea cols="50" rows="10" id="text"></textarea>
     </div>
     <div id="buttons">
-      <!-- <button onclick="loadFile()">Load</button> -->
       <button onclick="saveFile()">Save</button>
       <span class="message"></span>
     </div>
@@ -80,41 +79,13 @@
       var cfmClient,
           cfmContent,
           currentStudent = 1,
-          currentDocument = 1;
+          currentDocument = 1,
+          codapStorageEndpoint = "http://zdev.zoomin.bbox.ly/zi_sci_storage/";
 
       // Disable "Expected an assignment or function call and instead saw an expression" warning
       /*jshint -W030 */
       function newFile() {
         cfmClient && cfmClient.newFileDialog();
-      }
-
-      function loadFile(metadata) {
-        // no callback for open - we will handle it in the clientInit event callback
-        cfmClient && cfmClient.openFile(metadata, function(content, metadata) {
-          $('.message').html(
-            "Loaded document <strong>" +
-            metadata.document +
-            "</strong> for student <strong>" +
-            metadata.student +
-            "</strong> from storage."
-          );
-        });
-      }
-
-      function saveFile() {
-        var content = getContent(),
-            metadata = {
-              'provider': cfmClient.providers['ZiSciStorage'],
-              'student': currentStudent,
-              'document': currentDocument
-            };
-
-        cfmClient && cfmClient.saveFile(content, metadata, function(content, metadata) {
-          $('.message').html(
-            'Saved new content into document <strong>' + metadata.document +
-            '</strong> for student <strong>' + metadata.student + '<strong>.'
-          );
-        });
       }
 
       function saveFileAs() {
@@ -127,7 +98,11 @@
       }
 
       function setContent(_cfmContent) {
+        // For purposes of this example, allowing responses to be JSON or regular strings.
         cfmContent = _cfmContent;
+        if (typeof cfmContent === 'object') {
+          cfmContent = JSON.stringify(cfmContent);
+        }
         document.getElementById("text").value = cfmContent;
       }
 
@@ -145,12 +120,17 @@
       }
 
       function loadDocument() {
-        var metadata = {
-          'provider': cfmClient.providers['ZiSciStorage'],
-          'student': currentStudent,
-          'document': currentDocument
-        };
-        loadFile(metadata);
+        cfmClient && cfmClient.openProviderFile(
+          "ZiSciStorage",
+          { 'student': currentStudent,
+            'document': currentDocument,
+            'endpoint': codapStorageEndpoint
+          }
+        );
+      }
+
+      function saveFile() {
+        cfmClient && cfmClient.save();
       }
     </script>
     <script type="text/javascript">
@@ -163,6 +143,9 @@
           {
             "name": "ZiSciStorage",
           },
+          {
+            "name": "documentStore"
+          }
         ]
       };
       CloudFileManager.init(clientOptions);
@@ -202,8 +185,6 @@
         currentDocument = $(this).data('document');
         loadDocument();
       });
-
-      loadDocument();
     </script>
   </body>
 </html>

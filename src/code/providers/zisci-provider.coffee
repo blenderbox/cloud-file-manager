@@ -40,21 +40,19 @@ class ZiSciStorageProvider extends ProviderInterface
 
   save: (content, metadata, callback) ->
     try
-      console.log("zisci storage saving")
-
       if typeof content._.content is 'object'
         content._.content = JSON.stringify(content._.content)
 
       data = {
         'content': content._.content,
-        'student': metadata.student,
-        'document': metadata.document
+        'student': metadata.providerData.student,
+        'document': metadata.providerData.document
       }
 
       $.ajax
         dataType: 'json'
         type: 'POST'
-        url: "http://zdev.zoomin.bbox.ly/zi_sci_storage/save"
+        url: metadata.providerData.endpoint + "save"
         data: JSON.stringify(data),
         contentType: "application/json; charset=utf-8"
         success: (data) ->
@@ -76,20 +74,22 @@ class ZiSciStorageProvider extends ProviderInterface
       $.ajax
         dataType: 'json'
         type: 'GET'
-        url: "http://zdev.zoomin.bbox.ly/zi_sci_storage/load"
-        # Hardcoding for the moment.
-        # Need to figure out how to pass this metadata through.
+        url: metadata.providerData.endpoint + "load"
         data: {
-          'student': 1,
-          'document': 1
+          'student': metadata.providerData.student,
+          'document': metadata.providerData.document
         }
         contentType: "application/json; charset=utf-8"
         success: (data) ->
           console.log("successful load, data:")
           console.log(data)
 
-          if data.content is null or typeof data.content isnt 'object'
-            data.content = JSON.parse(data.content)
+          # Try to turn into JSON object, or else assume regular string
+          try
+            jsonContent = JSON.parse(data.content)
+            data.content = jsonContent
+          catch e
+            # Do nothing, data.content stays the same
 
           content = cloudContentFactory.createEnvelopedCloudContent data
 
@@ -99,25 +99,38 @@ class ZiSciStorageProvider extends ProviderInterface
         error: (jqXHR) ->
           console.log("error loading...")
           console.log(jqXHR)
+          document.getElementById("codap")?.innerHTML = "Error loading document"
     catch e
       callback "Unable to load '#{metadata.name}': #{e.message}"
 
   handleUrlParams: ->
-    @client.openProviderFile @name, "something"
+    ZiSciException = (message) ->
+      this.message = message
+
+    if not currentStudent?
+      throw new ZiSciException "Need to provide currentStudent as global variable"
+    if not currentDocument?
+      throw new ZiSciException "Need to provide currentDocument as global variable"
+    if not codapStorageEndpoint?
+      throw new ZiSciException "Need to provide codapStorageEndpoint as global variable"
+
+    @client.openProviderFile @name, {
+      'student': currentStudent,
+      'document': currentDocument,
+      'endpoint': codapStorageEndpoint
+    }
     true
 
-  canOpenSaved: -> true
+  canOpenSaved: -> false
 
   openSaved: (openSavedParams, callback) ->
     metadata = new CloudMetadata
-      name: openSavedParams
+      name: "ZiSci CODAP Document"
       type: CloudMetadata.File
       parent: null
       provider: @
+      providerData: openSavedParams
     @load metadata, (err, content) ->
       callback err, content, metadata
-
-  getOpenSavedParams: (metadata) ->
-    metadata.name
 
 module.exports = ZiSciStorageProvider
