@@ -12,19 +12,19 @@ class ZiSciStorageProvider extends ProviderInterface
       capabilities:
         save: true
         resave: true
-        export: false
+        export: true
         load: true
         list: false
         remove: false
-        rename: false
-        close: false
+        rename: true
+        close: true
 
   @Name: 'ZiSciStorage'
   @Available: ->
     result = try
-      test = 'ZiSciStorageProvider::auth'
-      window.localStorage.setItem(test, test)
-      window.localStorage.removeItem(test)
+      currentStudent?
+      currentDocument?
+      codapStorageEndpoint?
       true
     catch
       false
@@ -40,33 +40,50 @@ class ZiSciStorageProvider extends ProviderInterface
 
   save: (content, metadata, callback) ->
     try
+      # debugger
+
+      if @_isBase64(content)
+        @_saveImage(content, metadata, callback)
+
       if typeof content._.content is 'object'
-        content._.content = JSON.stringify(content._.content)
+        @_saveCODAPDocument(content, metadata, callback)
 
-      data = {
-        'content': content._.content,
-        'student': metadata.providerData.student,
-        'document': metadata.providerData.document
+      throw {
+        name: "ZiSciException",
+        message: "Content must be base64 image or CloudContent with json"
       }
-
-      $.ajax
-        dataType: 'json'
-        type: 'POST'
-        url: metadata.providerData.endpoint + "save"
-        data: JSON.stringify(data),
-        contentType: "application/json; charset=utf-8"
-        success: (data) ->
-          console.log("success, data:")
-          console.log(data)
-
-          callback null, data
-        error: (jqXHR) ->
-          console.log("error...")
-          console.log(jqXHR)
-
-      callback? null
     catch e
-      callback "Unable to save: #{e.message}"
+      # callback "Unable to save: #{e.message}"
+      throw e
+
+  _saveImage: (content, metadata, callback) ->
+    debugger
+
+  _saveCODAPDocument: (content, metadata, callback) ->
+    content._.content = JSON.stringify(content._.content)
+
+    data = {
+      'content': content._.content,
+      'student': metadata.providerData.student,
+      'document': metadata.providerData.document
+    }
+
+    $.ajax
+      dataType: 'json'
+      type: 'POST'
+      url: metadata.providerData.endpoint + "save"
+      data: JSON.stringify(data),
+      contentType: "application/json; charset=utf-8"
+      success: (data) ->
+        console.log("success, data:")
+        console.log(data)
+
+        callback null, data
+      error: (jqXHR) ->
+        console.log("error...")
+        console.log(jqXHR)
+
+    callback? null
 
   load: (metadata, callback) ->
     try
@@ -132,5 +149,11 @@ class ZiSciStorageProvider extends ProviderInterface
       providerData: openSavedParams
     @load metadata, (err, content) ->
       callback err, content, metadata
+
+  _isBase64: (str) ->
+    try
+      window.btoa(window.atob(str)) is str
+    catch err
+      false
 
 module.exports = ZiSciStorageProvider
