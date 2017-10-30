@@ -10,9 +10,9 @@ class ZiSciStorageProvider extends ProviderInterface
       displayName: @options.displayName or ('ZiSciStorage')
       urlDisplayName: @options.urlDisplayName
       capabilities:
-        save: true
+        save: 'auto'
         resave: true
-        export: true
+        export: 'auto'
         load: true
         list: false
         remove: false
@@ -22,7 +22,7 @@ class ZiSciStorageProvider extends ProviderInterface
   @Name: 'ZiSciStorage'
   @Available: ->
     result = try
-      ZiSciCodapOptions?
+      ZISCI_CODAP_OPTIONS?
       true
     catch
       false
@@ -38,9 +38,7 @@ class ZiSciStorageProvider extends ProviderInterface
 
   save: (content, metadata, callback) ->
     try
-      # debugger
-
-      if @_isBase64(content._.content)
+      if @_isBase64(content)
         @_saveImage(content, metadata, callback)
 
       else if typeof content._.content is 'object'
@@ -56,19 +54,17 @@ class ZiSciStorageProvider extends ProviderInterface
       throw e
 
   _saveImage: (content, metadata, callback) ->
-    # debugger
-
     data = {
       'content': content,
       'image': true,
-      'student': metadata.ZiSciCodapOptions.currentStudent,
-      'document': metadata.ZiSciCodapOptions.currentDocument
+      'student': @options.ziSciOptions.currentStudent,
+      'document': @options.ziSciOptions.currentDocument
     }
 
     $.ajax
       dataType: 'json'
       type: 'POST'
-      url: metadata.ZiSciCodapOptions.codapStorageEndpoint + "save_image"
+      url: @options.ziSciOptions.codapStorageEndpoint + "save_image"
       data: JSON.stringify(data),
       contentType: "application/json; charset=utf-8"
       success: (data) ->
@@ -89,18 +85,18 @@ class ZiSciStorageProvider extends ProviderInterface
 
     data = {
       'content': content._.content,
-      'student': metadata.providerData.currentStudent,
-      'document': metadata.providerData.currentDocument
+      'student': @options.ziSciOptions.currentStudent,
+      'document': @options.ziSciOptions.currentDocument
     }
 
-    if metadata.providerData.masterId
+    if @options.ziSciOptions.masterId
       console.log("Master document, not saving")
       return false
 
     $.ajax
       dataType: 'json'
       type: 'POST'
-      url: metadata.providerData.codapStorageEndpoint + "save"
+      url: @options.ziSciOptions.codapStorageEndpoint + "save"
       data: JSON.stringify(data),
       contentType: "application/json; charset=utf-8"
       success: (data) ->
@@ -116,24 +112,22 @@ class ZiSciStorageProvider extends ProviderInterface
 
   load: (metadata, callback) ->
     try
-      console.log(metadata)
-
       # Sometimes we may want to load the master document, such as in the admin view, to preview.
-      if metadata.providerData.masterId?
+      if @options.ziSciOptions.masterId?
         data = {
-          'masterId': metadata.providerData.masterId
+          'masterId': @options.ziSciOptions.masterId
         }
       # Or else let's assume it's a student's copy of the document.
       else
         data = {
-          'student': metadata.providerData.currentStudent,
-          'document': metadata.providerData.currentDocument
+          'student': @options.ziSciOptions.currentStudent,
+          'document': @options.ziSciOptions.currentDocument
         }
 
       $.ajax
         dataType: 'json'
         type: 'GET'
-        url: metadata.providerData.codapStorageEndpoint + "load"
+        url: @options.ziSciOptions.codapStorageEndpoint + "load"
         data: data,
         contentType: "application/json; charset=utf-8"
         success: (data) ->
@@ -160,13 +154,15 @@ class ZiSciStorageProvider extends ProviderInterface
       callback "Unable to load '#{metadata.name}': #{e.message}"
 
   handleUrlParams: ->
-    if not ZiSciCodapOptions?
+    if not ZISCI_CODAP_OPTIONS?
       throw {
         name: "ZiSciException",
         message: "Need to provide ZiSci Codap Options"
       }
 
-    @client.openProviderFile @name, ZiSciCodapOptions
+    @options.ziSciOptions = ZISCI_CODAP_OPTIONS
+    @client.openProviderFile @name, {}
+
     true
 
   canOpenSaved: -> false
@@ -177,7 +173,6 @@ class ZiSciStorageProvider extends ProviderInterface
       type: CloudMetadata.File
       parent: null
       provider: @
-      providerData: openSavedParams
     @load metadata, (err, content) ->
       callback err, content, metadata
 

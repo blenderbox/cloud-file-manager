@@ -158,7 +158,10 @@ class ProviderInterface
   @Available: -> true
 
   can: (capability) ->
-    @capabilities[capability]
+    !!@capabilities[capability]
+
+  canAuto: (capability) ->
+    @capabilities[capability] is 'auto'
 
   isAuthorizationRequired: ->
     false
@@ -198,6 +201,13 @@ class ProviderInterface
 
   save: (content, metadata, callback) ->
     @_notImplemented 'save'
+
+  saveAsExport: (content, metadata, callback) ->
+    # default implementation invokes save
+    if @can 'save', metadata
+      @save content, metadata, callback
+    else
+      @_notImplemented 'saveAsExport'
 
   load: (callback) ->
     @_notImplemented 'load'
