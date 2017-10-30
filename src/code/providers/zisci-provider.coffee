@@ -22,9 +22,7 @@ class ZiSciStorageProvider extends ProviderInterface
   @Name: 'ZiSciStorage'
   @Available: ->
     result = try
-      currentStudent?
-      currentDocument?
-      codapStorageEndpoint?
+      ZiSciCodapOptions?
       true
     catch
       false
@@ -42,36 +40,67 @@ class ZiSciStorageProvider extends ProviderInterface
     try
       # debugger
 
-      if @_isBase64(content)
+      if @_isBase64(content._.content)
         @_saveImage(content, metadata, callback)
 
-      if typeof content._.content is 'object'
+      else if typeof content._.content is 'object'
         @_saveCODAPDocument(content, metadata, callback)
 
-      throw {
-        name: "ZiSciException",
-        message: "Content must be base64 image or CloudContent with json"
-      }
+      else
+        throw {
+          name: "ZiSciException",
+          message: "Content must be base64 image or CloudContent with json"
+        }
     catch e
       # callback "Unable to save: #{e.message}"
       throw e
 
   _saveImage: (content, metadata, callback) ->
-    debugger
+    # debugger
+
+    data = {
+      'content': content,
+      'image': true,
+      'student': metadata.ZiSciCodapOptions.currentStudent,
+      'document': metadata.ZiSciCodapOptions.currentDocument
+    }
+
+    $.ajax
+      dataType: 'json'
+      type: 'POST'
+      url: metadata.ZiSciCodapOptions.codapStorageEndpoint + "save_image"
+      data: JSON.stringify(data),
+      contentType: "application/json; charset=utf-8"
+      success: (data) ->
+        console.log("success, data:")
+        console.log(data)
+
+        # callback null, data
+        console.log('successfully saved image')
+      error: (jqXHR) ->
+        console.log("error...")
+        console.log(jqXHR)
+
+    # callback? null
+    console.log('done saving image')
 
   _saveCODAPDocument: (content, metadata, callback) ->
     content._.content = JSON.stringify(content._.content)
 
     data = {
       'content': content._.content,
-      'student': metadata.providerData.student,
-      'document': metadata.providerData.document
+      'student': metadata.providerData.currentStudent,
+      'document': metadata.providerData.currentDocument
     }
+
+    if metadata.providerData.masterId
+      console.log("Master document, not saving")
+      return false
 
     $.ajax
       dataType: 'json'
       type: 'POST'
-      url: metadata.providerData.endpoint + "save"
+      url: metadata.providerData.codapStorageEndpoint + "save"
       data: JSON.stringify(data),
       contentType: "application/json; charset=utf-8"
       success: (data) ->
@@ -88,14 +117,24 @@ class ZiSciStorageProvider extends ProviderInterface
   load: (metadata, callback) ->
     try
       console.log(metadata)
+
+      # Sometimes we may want to load the master document, such as in the admin view, to preview.
+      if metadata.providerData.masterId?
+        data = {
+          'masterId': metadata.providerData.masterId
+        }
+      # Or else let's assume it's a student's copy of the document.
+      else
+        data = {
+          'student': metadata.providerData.currentStudent,
+          'document': metadata.providerData.currentDocument
+        }
+
       $.ajax
         dataType: 'json'
         type: 'GET'
-        url: metadata.providerData.endpoint + "load"
-        data: {
-          'student': metadata.providerData.student,
-          'document': metadata.providerData.document
-        }
+        url: metadata.providerData.codapStorageEndpoint + "load"
+        data: data,
         contentType: "application/json; charset=utf-8"
         success: (data) ->
           console.log("successful load, data:")
@@ -121,21 +160,13 @@ class ZiSciStorageProvider extends ProviderInterface
       callback "Unable to load '#{metadata.name}': #{e.message}"
 
   handleUrlParams: ->
-    ZiSciException = (message) ->
-      this.message = message
+    if not ZiSciCodapOptions?
+      throw {
+        name: "ZiSciException",
+        message: "Need to provide ZiSci Codap Options"
+      }
 
-    if not currentStudent?
-      throw new ZiSciException "Need to provide currentStudent as global variable"
-    if not currentDocument?
-      throw new ZiSciException "Need to provide currentDocument as global variable"
-    if not codapStorageEndpoint?
-      throw new ZiSciException "Need to provide codapStorageEndpoint as global variable"
-
-    @client.openProviderFile @name, {
-      'student': currentStudent,
-      'document': currentDocument,
-      'endpoint': codapStorageEndpoint
-    }
+    @client.openProviderFile @name, ZiSciCodapOptions
     true
 
   canOpenSaved: -> false

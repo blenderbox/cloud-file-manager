@@ -551,16 +551,18 @@ class CloudFileManagerClient
       callback? 'No initial opened version was found for the currently active file'
 
   saveSecondaryFileAsDialog: (stringContent, extension, mimeType, callback) ->
-    if forceSaveFileNoDialog
-      @saveSecondaryFile stringContent, {
+    if ZiSciCodapOptions? and ZiSciCodapOptions.forceSaveFileNoDialog?
+      content = cloudContentFactory.createEnvelopedCloudContent stringContent
+      @saveSecondaryFile content, {
         'provider': @providers.ZiSciStorage,
         'image': true,
         'extension': extension,
-        'mimeType': mimeType
+        'mimeType': mimeType,
+        'ZiSciCodapOptions': ZiSciCodapOptions
       }, ->
         console.log("done saving file...?")
 
-    if window.location.search.indexOf("saveSecondaryFileViaPostMessage") isnt -1
+    else if window.location.search.indexOf("saveSecondaryFileViaPostMessage") isnt -1
       window.parent.postMessage({
         action: "saveSecondaryFile",
         extension: extension,
