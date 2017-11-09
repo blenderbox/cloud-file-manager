@@ -9,6 +9,8 @@ class DocumentStoreUrl
 
   constructor: (docStoreUrl) ->
     @docStoreUrl = docStoreUrl or defaultDocStoreUrl
+    # eliminate trailing slashes
+    @docStoreUrl = @docStoreUrl.replace(/\/+$/, '')
 
   addParams: (url, params) ->
     return url unless params

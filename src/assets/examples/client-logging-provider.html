@@ -1,0 +1,105 @@
+<html>
+  <head>
+    <script src="../js/globals.js"></script>
+    <script src="../js/app.js"></script>
+    <link rel="stylesheet" href="../css/app.css">
+    <title>Examples: Client Logging Provider</title>
+  </head>
+  <body>
+    <div id="wrapper">
+    </div>
+    <script>
+      /*
+       * Example of a client-created provider passed to the CFM via configuration.
+       * The example provider simply logs to the console when it is called.
+       */
+      function createLoggingProvider(ProviderBase) {
+
+        var LoggingProvider = function(options, client) {
+          ProviderBase.call(this, {
+            name: LoggingProvider.Name,
+            displayName: options.displayName || "Logging Provider",
+            urlDisplayName: options.urlDisplayName,
+            capabilities: {
+              save: true,
+              resave: true,
+              export: true,
+              load: false,
+              list: true,
+              remove: false,
+              rename: false,
+              close: false,
+              setFolder: false
+            }
+          });
+        };
+        LoggingProvider.Name = "loggingProvider";
+
+        // Configure derived class relationship to base class
+        LoggingProvider.prototype = Object.create(ProviderBase.prototype);
+        LoggingProvider.prototype.constructor = LoggingProvider;
+
+        LoggingProvider.prototype.list = function(metadata, callback) {
+          console.log("Logging Provider: list() called!");
+          return callback(null, []);
+        };
+
+        LoggingProvider.prototype.save = function(content, metadata, callback) {
+          console.log("Logging Provider: save() called for filename: '" + metadata.filename + "'");
+          callback(null);
+        }
+
+        LoggingProvider.prototype.saveAsExport = function(content, metadata, callback) {
+          console.log("Logging Provider: saveAsExport() called for filename: '" + metadata.filename + "'");
+          callback(null);
+        }
+
+        return LoggingProvider;
+      }
+
+      var options = {
+        app: "example-app",
+        mimeType: "text/plain",
+        appName: "CFM_Demo",
+        appVersion: "0.1",
+        appBuildNum: "1",
+        enableLaraSharing: true,
+        providers: [
+          "localStorage",
+          "localFile",
+          "lara",
+          {
+            "name": "readOnly",
+            "json": {
+              "first-example": "This is the first readonly example",
+              "second-example": "This is the second readonly example"
+            }
+          },
+          {
+            "name": "googleDrive",
+            "clientId": "1095918012594-svs72eqfalasuc4t1p1ps1m8r9b8psso.apps.googleusercontent.com"
+          },
+          {
+            "name": "documentStore",
+            "patch": true
+          },
+          {
+            name: "loggingProvider",
+            displayName: "Example Logger",
+            createProvider: function(ProviderBase) {
+              return createLoggingProvider(ProviderBase);
+            }
+          }
+        ],
+        ui: {
+          menu: CloudFileManager.DefaultMenu,
+          menuBar: {
+            info: "Version 1.0.0",
+            help: "http://lmgtfy.com/"
+          }
+        }
+      };
+      CloudFileManager.createFrame(options, "wrapper");
+    </script>
+  </body>
+</html>

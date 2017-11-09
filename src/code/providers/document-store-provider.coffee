@@ -308,12 +308,25 @@ class DocumentStoreProvider extends ProviderInterface
     if @urlParams.runKey
       params.runKey = @urlParams.runKey
 
-    $.ajax
-      dataType: 'json'
-      type: 'POST'
-      url: if patchResults.shouldPatch \
+    method = 'POST'
+    url = if patchResults.shouldPatch \
             then @docStoreUrl.patchDocument(params) \
             else @docStoreUrl.saveDocument(params)
+
+    logData =
+      operation: 'save'
+      provider: 'DocumentStoreProvider'
+      shouldPatch: patchResults.shouldPatch
+      method: method
+      url: url
+      params: JSON.stringify(params)
+      content: patchResults.sendContent.substr(0, 512)
+    @client.log 'save', logData
+
+    $.ajax
+      dataType: 'json'
+      type: method
+      url: url
       data: pako.deflate patchResults.sendContent
       contentType: patchResults.mimeType
       processData: false
