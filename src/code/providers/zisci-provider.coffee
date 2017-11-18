@@ -2,6 +2,8 @@ ProviderInterface = (require './provider-interface').ProviderInterface
 cloudContentFactory = (require './provider-interface').cloudContentFactory
 CloudMetadata = (require './provider-interface').CloudMetadata
 
+pako = require 'pako'
+
 class ZiSciStorageProvider extends ProviderInterface
 
   constructor: (@options = {}, @client) ->
@@ -81,26 +83,26 @@ class ZiSciStorageProvider extends ProviderInterface
     console.log('done saving image')
 
   _saveCODAPDocument: (content, metadata, callback) ->
-    content._.content = JSON.stringify(content._.content)
-
-    data = {
-      'content': content._.content,
-      'student': @options.ziSciOptions.currentStudent,
-      'document': @options.ziSciOptions.currentDocument
-    }
-
     if @options.ziSciOptions.masterId
       console.log("Master document, not saving")
       return false
 
+    url = "#{@options.ziSciOptions.codapStorageEndpoint}\
+           save/\
+           #{@options.ziSciOptions.currentDocument}/\
+           #{@options.ziSciOptions.currentStudent}"
+
+    # Stringify JSON for storage, then compress that string before sending to server
+    data = pako.deflate JSON.stringify content._.content
+
     $.ajax
       dataType: 'json'
       type: 'POST'
-      url: @options.ziSciOptions.codapStorageEndpoint + "save"
-      data: JSON.stringify(data),
-      contentType: "application/json; charset=utf-8"
+      url: url,
+      data: data,
+      contentType: 'application/octet-stream',
+      processData: false,
       success: (data) ->
-        console.log("success, data:")
         console.log(data)
 
         callback null, data
@@ -113,26 +115,26 @@ class ZiSciStorageProvider extends ProviderInterface
   load: (metadata, callback) ->
     try
       # Sometimes we may want to load the master document, such as in the admin view, to preview.
+      # Otherwise, we are loading a user's copy.
       if @options.ziSciOptions.masterId?
-        data = {
-          'masterId': @options.ziSciOptions.masterId
-        }
-      # Or else let's assume it's a student's copy of the document.
+        url = "#{@options.ziSciOptions.codapStorageEndpoint}\
+               load_master/\
+               #{@options.ziSciOptions.masterId}"
       else
-        data = {
-          'student': @options.ziSciOptions.currentStudent,
-          'document': @options.ziSciOptions.currentDocument
-        }
+        url = "#{@options.ziSciOptions.codapStorageEndpoint}\
+               load/\
+               #{@options.ziSciOptions.currentDocument}/\
+               #{@options.ziSciOptions.currentStudent}"
 
       $.ajax
         dataType: 'json'
         type: 'GET'
-        url: @options.ziSciOptions.codapStorageEndpoint + "load"
-        data: data,
-        contentType: "application/json; charset=utf-8"
+        url: url,
+        data: null,
+        contentType: "application/json; charset=utf-8",
+        processData: false,
         success: (data) ->
-          console.log("successful load, data:")
-          console.log(data)
+          console.log("successful load from ZiSci storage")
 
           # Try to turn into JSON object, or else assume regular string
           try
@@ -142,8 +144,6 @@ class ZiSciStorageProvider extends ProviderInterface
             # Do nothing, data.content stays the same
 
           content = cloudContentFactory.createEnvelopedCloudContent data
-
-          console.log(content)
 
           callback null, content
         error: (jqXHR) ->
