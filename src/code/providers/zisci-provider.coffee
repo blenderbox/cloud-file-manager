@@ -56,31 +56,26 @@ class ZiSciStorageProvider extends ProviderInterface
       throw e
 
   _saveImage: (content, metadata, callback) ->
-    data = {
-      'content': content,
-      'image': true,
-      'student': @options.ziSciOptions.currentStudent,
-      'document': @options.ziSciOptions.currentDocument
-    }
+    url = "#{@options.ziSciOptions.codapStorageEndpoint}\
+           save_image/\
+           #{@options.ziSciOptions.currentDocument}/\
+           #{@options.ziSciOptions.currentStudent}"
+    data = content
 
     $.ajax
       dataType: 'json'
       type: 'POST'
-      url: @options.ziSciOptions.codapStorageEndpoint + "save_image"
-      data: JSON.stringify(data),
-      contentType: "application/json; charset=utf-8"
+      url: url,
+      data: data,
+      contentType: metadata.mimeType,
       success: (data) ->
-        console.log("success, data:")
-        console.log(data)
-
+        $(document).trigger('codapNoteAdded', {'imageUrl': data.image})
         # callback null, data
-        console.log('successfully saved image')
       error: (jqXHR) ->
         console.log("error...")
         console.log(jqXHR)
 
     # callback? null
-    console.log('done saving image')
 
   _saveCODAPDocument: (content, metadata, callback) ->
     if @options.ziSciOptions.masterId
