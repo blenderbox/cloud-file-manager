@@ -58,7 +58,7 @@ class ZiSciStorageProvider extends ProviderInterface
   _saveImage: (content, metadata, callback) ->
     url = "#{@options.ziSciOptions.codapStorageEndpoint}\
            save_image/\
-           #{@options.ziSciOptions.currentDocument}/\
+           #{@options.ziSciOptions.zisciDocument}/\
            #{@options.ziSciOptions.currentStudent}"
     data = content
 
