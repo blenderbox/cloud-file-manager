@@ -58,6 +58,7 @@ class ZiSciStorageProvider extends ProviderInterface
   _saveImage: (content, metadata, callback) ->
     url = "#{@options.ziSciOptions.codapStorageEndpoint}\
            save_image/\
+           #{@options.ziSciOptions.zisciCourse}/\
            #{@options.ziSciOptions.zisciDocument}/\
            #{@options.ziSciOptions.currentStudent}"
     data = content
@@ -84,6 +85,8 @@ class ZiSciStorageProvider extends ProviderInterface
 
     url = "#{@options.ziSciOptions.codapStorageEndpoint}\
            save/\
+           #{@options.ziSciOptions.zisciCourse}/\
+           #{@options.ziSciOptions.zisciDocument}/\
            #{@options.ziSciOptions.currentDocument}/\
            #{@options.ziSciOptions.currentStudent}"
 
@@ -118,6 +121,8 @@ class ZiSciStorageProvider extends ProviderInterface
       else
         url = "#{@options.ziSciOptions.codapStorageEndpoint}\
                load/\
+               #{@options.ziSciOptions.zisciCourse}/\
+               #{@options.ziSciOptions.zisciDocument}/\
                #{@options.ziSciOptions.currentDocument}/\
                #{@options.ziSciOptions.currentStudent}"
 
