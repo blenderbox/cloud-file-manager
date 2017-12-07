@@ -169,7 +169,7 @@ class ZiSciStorageProvider extends ProviderInterface
 
   openSaved: (openSavedParams, callback) ->
     metadata = new CloudMetadata
-      name: "ZiSci CODAP Document"
+      name: @options.ziSciOptions.zisciDocumentName or "ZiSci CODAP Document"
       type: CloudMetadata.File
       parent: null
       provider: @
